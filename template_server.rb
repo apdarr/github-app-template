@@ -5,7 +5,9 @@ require 'json'
 require 'openssl'     # Verifies the webhook signature
 require 'jwt'         # Authenticates a GitHub App
 require 'time'        # Gets ISO 8601 representation of a Time object
-require 'logger'      # Logs debug statements
+require 'logger' 
+require 'debug'     # Logs debug statements
+require 'httparty' # Makes HTTP requests
 
 set :port, 3000
 set :bind, '0.0.0.0'
@@ -45,7 +47,10 @@ class GHAapp < Sinatra::Application
     set :logging, Logger::DEBUG
   end
 
-
+  get '/' do
+    "Hello World"
+  end
+  
   # Before each request to the `/event_handler` route
   before '/event_handler' do
     get_payload_request(request)
@@ -58,9 +63,14 @@ class GHAapp < Sinatra::Application
 
   post '/event_handler' do
 
-    # # # # # # # # # # # #
-    # ADD YOUR CODE HERE  #
-    # # # # # # # # # # # #
+    case request.env['HTTP_X_GITHUB_EVENT']
+    when 'issues'
+      debugger
+      if @payload['action'] === 'opened'
+        # Use HTTParty to make a request to the GitHub API
+
+      end
+    end
 
     200 # success status
   end
@@ -79,6 +89,7 @@ class GHAapp < Sinatra::Application
       request.body.rewind
       # The raw text of the body is required for webhook signature verification
       @payload_raw = request.body.read
+      puts "~~~~~~~payload_raw: #{@payload_raw}~~~~~~~"
       begin
         @payload = JSON.parse @payload_raw
       rescue => e
@@ -115,6 +126,7 @@ class GHAapp < Sinatra::Application
     def authenticate_installation(payload)
       @installation_id = payload['installation']['id']
       @installation_token = @app_client.create_app_installation_access_token(@installation_id)[:token]
+      debugger
       @installation_client = Octokit::Client.new(bearer_token: @installation_token)
     end
 
